@@ -1,17 +1,9 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registro de Novedades - Inlotrans</title>
-
-  <!-- EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2/dist/email.min.js"></script>
-  <script>
-    (function(){
-      emailjs.init("o77R6n9PfT8Pu3VqR"); /* PUBLIC KEY */
-    })();
-  </script>
 
   <style>
     body {
@@ -19,7 +11,9 @@
       font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
       padding: 40px;
+      margin: 0;
     }
 
     .container {
@@ -33,72 +27,52 @@
 
     .logo {
       width: 150px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
 
     h2 {
-      margin-bottom: 25px;
       color: #003d7a;
+      margin-bottom: 20px;
     }
 
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    label {
-      text-align: left;
-      font-weight: bold;
-    }
-
-    input, select, textarea {
+    input, select, textarea, button {
+      width: 100%;
+      margin-bottom: 10px;
       padding: 10px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      width: 100%;
+      font-size: 15px;
     }
 
     button {
       background: #003d7a;
       color: white;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
+      font-weight: bold;
       cursor: pointer;
-      font-size: 16px;
-      margin-top: 10px;
+      transition: background 0.3s;
     }
 
     button:hover {
       background: #005bb5;
     }
 
-    #alerta {
-      margin-top: 15px;
-      font-weight: bold;
+    #alerta { 
+      margin-top: 10px; 
+      font-weight: bold; 
     }
   </style>
 </head>
+
 <body>
+  <div class="container">
+    <img src="logo.png" alt="Logo Inlotrans" class="logo" />
+    <h2>Registro de Novedades</h2>
 
-<div class="container">
-
-  <img src="logo.png" alt="Logo Inlotrans" class="logo" />
-
-  <h2>Registro de Novedades</h2>
-
-  <form id="novedadForm">
-
-    <label>Cédula</label>
-    <input type="text" id="cedula" required>
-
-    <label>Nombre Completo</label>
-    <input type="text" id="nombre" required>
-
-    <label>Operación</label>
-    <select id="operacion" required>
-      <option value="">Seleccione...</option>
+    <form id="novedadForm" enctype="multipart/form-data">
+      <input type="text" name="cedula" placeholder="Cédula" required>
+      <input type="text" name="nombre" placeholder="Nombre completo" required>
+      <select name="operacion" required>
+        <option value="">Seleccione operación</option>
         <option>Multidimensionales</option>
         <option>Red polar</option>
         <option>Frigorifico</option>
@@ -108,73 +82,49 @@
         <option>Pepsico 3pd</option>
         <option>Pepsico materia prima</option>
         <option>Administrativo</option>
-    </select>
+      </select>
+      <input type="text" name="justificacion" placeholder="Justificación" required>
+      <textarea name="descripcion" rows="4" placeholder="Descripción" required></textarea>
+      <input type="file" name="archivo" accept="application/pdf" required>
+      <button type="submit">Enviar Novedad</button>
+    </form>
 
-    <label>Justificación de la Novedad</label>
-    <input type="text" id="justificacion" required>
+    <p id="alerta"></p>
+  </div>
 
-    <label>Descripción de la Novedad</label>
-    <textarea id="descripcion" rows="4" required></textarea>
-
-    <label>Adjuntar PDF</label>
-    <input type="file" id="archivo" accept="application/pdf" required>
-
-    <button type="submit">Enviar Novedad</button>
-  </form>
-
-  <p id="alerta"></p>
-
-</div>
-
-<script>
-document.getElementById("novedadForm").addEventListener("submit", async function(e){
-    e.preventDefault();
-
+  <script>
+    const form = document.getElementById("novedadForm");
     const alerta = document.getElementById("alerta");
-    alerta.textContent = "Enviando novedad...";
-    alerta.style.color = "orange";
 
-    const cedula = document.getElementById("cedula").value;
-    const nombre = document.getElementById("nombre").value;
-    const operacion = document.getElementById("operacion").value;
-    const justificacion = document.getElementById("justificacion").value;
-    const descripcion = document.getElementById("descripcion").value;
-    const archivo = document.getElementById("archivo").files[0];
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alerta.textContent = "Enviando novedad...";
+      alerta.style.color = "orange";
 
-    const base64PDF = await convertirBase64(archivo);
+      const formData = new FormData(form);
 
-    const datos = {
-      cedula,
-      nombre,
-      operacion,
-      justificacion,
-      descripcion,
-      archivo: base64PDF,
-      archivo_nombre: archivo.name
-    };
+      try {
+        const res = await fetch("http://localhost:3000/enviar-novedad", {
+          method: "POST",
+          body: formData,
+        });
 
-    emailjs.send("service_bsp46qd", "template_xxb9krb", datos)
-    .then(() => {
-        alerta.textContent = "¡Novedad enviada exitosamente!";
-        alerta.style.color = "green";
-        document.getElementById("novedadForm").reset();
-    })
-    .catch(() => {
-        alerta.textContent = "Error al enviar. Intenta nuevamente.";
+        const data = await res.json();
+
+        if (data.ok) {
+          alerta.textContent = "✅ ¡Novedad enviada exitosamente!";
+          alerta.style.color = "green";
+          form.reset();
+        } else {
+          alerta.textContent = "❌ Error al enviar el correo.";
+          alerta.style.color = "red";
+        }
+      } catch (err) {
+        console.error(err);
+        alerta.textContent = "⚠️ Error de conexión con el servidor.";
         alerta.style.color = "red";
+      }
     });
-
-});
-
-function convertirBase64(file) {
-    return new Promise((resolve, reject) => {
-        const lector = new FileReader();
-        lector.readAsDataURL(file);
-        lector.onload = () => resolve(lector.result);
-        lector.onerror = error => reject(error);
-    });
-}
-</script>
-
+  </script>
 </body>
 </html>
